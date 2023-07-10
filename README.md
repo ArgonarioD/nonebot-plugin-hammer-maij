@@ -27,6 +27,10 @@
   </a>
 </p>
 
+## 前言
+本插件的本质是 [Hammer MaiJ API](https://docs.hammer-hfut.tk:233/maij) 的 Nonebot2 前端，
+可以令您的机器人与其它同样接入了 Hammer MaiJ API 的机器人以及机器人所面向的玩家共享该服务中已经存在的舞萌DX机厅信息。
+
 ## 使用本插件
 
 1. 用包管理器在你的 Bot 项目中安装本包，以 Poetry（Nonebot2.0.0 使用的默认包管理器）为例，在命令行中执行
