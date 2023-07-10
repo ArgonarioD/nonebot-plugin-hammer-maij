@@ -81,7 +81,7 @@ poetry add nonebot-plugin-hammer-maij
 
 ## 本插件所实现的API
 
-- [Hammer MaiJ API]("https://docs.hammer-hfut.tk:233/maij")
+- [Hammer MaiJ API](https://docs.hammer-hfut.tk:233/maij)
 
 ## 鸣谢
 
