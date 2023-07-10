@@ -64,7 +64,7 @@ async def handle_renewal_announcement(
         response = client.put(
             url=f'{consts.API_URL}/place/{location}/{place_name}/announcement/{announcement_id}/renewal',
             json={
-                "operator": event.user_id,
+                "operatorId": event.user_id,
             })
         data = Announcement(**json_dict_from_response(response))
         await matcher.send(
@@ -94,7 +94,8 @@ async def handle_delete_announcement(
 
     ##########
     async def do():
-        response = client.delete(
+        response = client.request(
+            'DELETE',
             url=f'{consts.API_URL}/place/{location}/{place_name}/announcement/{announcement_id}',
             json={
                 "deleterId": event.user_id,

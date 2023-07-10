@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot_plugin_hammer_maij"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Nonebot2 plugin implements MaiJ API, which helps MaimaiDX players share the information of game zones."
 authors = ["ArgonarioD <argonariod@outlook.com>"]
 repository = "https://github.com/ArgonarioD/nonebot-plugin-hammer-maij"

@@ -87,6 +87,15 @@ poetry add nonebot-plugin-hammer-maij
 
 - [Hammer MaiJ API](https://docs.hammer-hfut.tk:233/maij)
 
+## 更新日志
+
+### v1.0.1 (*2023-07-10*)
+#### Bugs Fixed
+- 修复了续期公告请求体参数名错误的问题
+- 修复了删除公告请求无法发送的问题
+### v1.0.0 (*2023-07-10*)
+发布本项目
+
 ## 鸣谢
 
 - [onebot](https://github.com/botuniverse/onebot)
