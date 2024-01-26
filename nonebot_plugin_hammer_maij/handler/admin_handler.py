@@ -1,27 +1,80 @@
-from nonebot.adapters.onebot.v11 import GroupMessageEvent, GROUP_MEMBER, Bot, Message
+from typing import Union, Annotated
+
+from nonebot import on_command
+from nonebot.adapters.onebot.v11 import MessageEvent, GroupMessageEvent, Message
 from nonebot.params import CommandArg
-from nonebot.plugin.on import on_command
+from nonebot.permission import SUPERUSER
 from nonebot_plugin_hammer_core.util.message_factory import reply_text
 
-from ..maij_config import plugin_config
-from ..const import consts
+from .. import group_mapping, random_command_start
 from ..http.http_client import client
-from ..http.http_utils import json_dict_from_response
 
-configure_group = on_command('maij.设置本群地区')  # /maij.设置本群地区 <省市名>
+configure_group = on_command('maij.config', permission=SUPERUSER, block=True, force_whitespace=True)
+disable_group = on_command('maij.disable', permission=SUPERUSER, block=True, force_whitespace=True)
+
+__config_command_lint = f"本指令格式为{random_command_start}maij.config <城市名> [目标群号...]。"
+__disable_command_lint = f"本指令格式为{random_command_start}maij.disable [目标群号...]。"
 
 
 @configure_group.handle()
-async def handle_configure_group(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
-    if await GROUP_MEMBER(bot, event) and event.user_id != 739062975:
-        await configure_group.finish(reply_text('您没有足够的权限执行该指令。', event))
+async def handle_configure_group(
+        event: Union[MessageEvent, GroupMessageEvent],
+        args: Annotated[Message, CommandArg()]
+):
+    arg_list = str(args).split(' ')
+    if len(arg_list) == 0 or (len(arg_list) == 1 and arg_list[0] == ''):
+        await configure_group.finish(reply_text(__config_command_lint, event))
+    target_location = arg_list[0].strip()
+    groups: list[int] = []
+    for arg in arg_list[1:]:
+        try:
+            groups.append(int(arg))
+        except ValueError:
+            await configure_group.finish(reply_text(__config_command_lint, event))
+    if len(groups) == 0:
+        if not isinstance(event, GroupMessageEvent):
+            await configure_group.finish(reply_text("请在群内使用本指令或使用指令参数指定群号。", event))
+        groups.append(event.group_id)
 
-    target_location = args.extract_plain_text().strip()
-    response = client.get(url=f'{consts.API_URL}/place/supported')
-    data = json_dict_from_response(response)
-    if len(list(filter(lambda l: l['cityName'] == target_location, data['records']))) == 0:
-        await configure_group.finish(reply_text('Hammer-MaiJ API暂不支持本城市。', event))
+    data = (await client.get(url="/city")).json()
+    city_available = False
+    for d in data:
+        if d['name'] == target_location:
+            city_available = True
 
-    plugin_config.group_location[event.group_id] = target_location
-    plugin_config.write_to_disk()
-    await configure_group.finish(reply_text(f"成功将本群的地区设置为{target_location}。", event))
+    if not city_available:
+        await configure_group.finish(reply_text(f"Hammer-MaiJ API暂不支持城市：{target_location}。", event))
+
+    group_strs: list[str] = []
+    for group_id in groups:
+        group_strs.append(f'群{group_id}')
+        group_mapping[group_id] = target_location
+
+    group_mapping.write_to_disk()
+    await configure_group.finish(reply_text(f"成功将 {'，'.join(group_strs)} 的地区设置为 {target_location}。", event))
+
+
+@disable_group.handle()
+async def handle_disable_group(
+        event: Union[MessageEvent, GroupMessageEvent],
+        args: Annotated[Message, CommandArg()]
+):
+    arg_list = str(args).split(' ')
+    groups: list[int] = []
+    for arg in arg_list:
+        try:
+            groups.append(int(arg))
+        except ValueError:
+            await configure_group.finish(reply_text(__disable_command_lint, event))
+    if len(groups) == 0:
+        if not isinstance(event, GroupMessageEvent):
+            await configure_group.finish(reply_text("请在群内使用本指令或使用指令参数指定群号。", event))
+        groups.append(event.group_id)
+
+    group_strs: list[str] = []
+    for group_id in groups:
+        group_strs.append(f'群{group_id}')
+        del group_mapping[group_id]
+
+    group_mapping.write_to_disk()
+    await configure_group.finish(reply_text(f"成功删除 {'，'.join(group_strs)} 的地区设置。", event))

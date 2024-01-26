@@ -1,109 +1,89 @@
+from re import DOTALL
 from typing import Annotated, Any
 
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Bot
 from nonebot.internal.matcher import Matcher
-from nonebot.params import RegexGroup
+from nonebot.params import RegexDict
 from nonebot.plugin.on import on_regex
 from nonebot_plugin_hammer_core.util.message_factory import reply_text
 
-from .handle_utils import get_group_location, do_request
-from ..const import consts
-from ..data_classes import Announcement
+from .handle_utils import do_request
+from .. import group_mapping
 from ..http.http_client import client
+from ..http.http_models import Announcement
 from ..http.http_utils import json_dict_from_response
 
-add_announcement = on_regex(r'^(?:添加(?:一[个条])?|[加发]一?[个条])公告 (.+?)\s(.+)')
-renewal_announcement = on_regex(r'^续一?[续下发]公告 (.+?) (\d+)')
-delete_announcement = on_regex(r'^(?:[删移]除(?:一[个条])?|删一?[个条])公告 (.+?) (\d+)')
+announcement_add = on_regex(r'^(?:添加(?:一[个条])?|[加发]一?[个条])公告 (?P<place>.+?)\s(?P<content>.+)', flags=DOTALL)
+announcement_renewal = on_regex(r'^续一?[续下发]公告 (?P<place>.+?) (?P<announcementId>\d+)$')
+announcement_delete = on_regex(r'^(?:[删移]除(?:一[个条])?|删一?[个条])公告 (?P<place>.+?) (?P<announcementId>\d+)$')
 
 
-@add_announcement.handle()
-async def handle_add_announcement(
+@announcement_add.handle()
+async def handle_announcement_add(
         matcher: Matcher,
         bot: Bot,
         event: GroupMessageEvent,
-        r: Annotated[tuple[Any, ...], RegexGroup()]
+        r: Annotated[dict[str, Any], RegexDict()]
 ):
-    location = get_group_location(event.group_id)
-    place_name: str = r[0].strip()
-    content: str = r[1].strip()
+    city_name = group_mapping[event.group_id]
+    place_name = r['place'].strip()
+    content = r['content'].strip()
 
     ##########
     async def do():
-        response = client.post(url=f'{consts.API_URL}/place/{location}/{place_name}/announcement', json={
-            'uploaderId': event.user_id,
-            'uploaderGroupId': event.group_id,
-            'announcementContent': content
-        })
+        response = await client.post(
+            url=f'/place/{city_name}/{place_name}/announcement',
+            json={'uploaderId': event.user_id, 'uploaderGroupId': event.group_id, 'content': content}
+        )
         data = Announcement(**json_dict_from_response(response))
-        await matcher.send(reply_text(f'''成功为{data.place.placeName}创建公告，公告内容如下：
-{await data.display_str(bot, event)}'''.strip(), event))
+        await matcher.finish(reply_text(f"""成功为 {data.place.name} 添加了一条公告，公告内容如下：
+{await data.to_str(bot, event.group_id)}""".strip(), event))
 
     ##########
 
     await do_request(matcher, event, place_name, do)
 
 
-@renewal_announcement.handle()
-async def handle_renewal_announcement(
+@announcement_renewal.handle()
+async def handle_announcement_renewal(
         matcher: Matcher,
         bot: Bot,
         event: GroupMessageEvent,
-        r: Annotated[tuple[Any, ...], RegexGroup()]
+        r: Annotated[dict[str, Any], RegexDict()]
 ):
-    location = get_group_location(event.group_id)
-    place_name: str = r[0].strip()
-    try:
-        announcement_id: int = int(r[1].strip())
-    except ValueError:
-        await matcher.send(reply_text('请输入正确的公告ID。', event))
-        return
+    city_name = group_mapping[event.group_id]
+    place_name = r['place'].strip()
+    announcement_id = r['announcementId']
 
     ##########
     async def do():
-        response = client.put(
-            url=f'{consts.API_URL}/place/{location}/{place_name}/announcement/{announcement_id}/renewal',
-            json={
-                "operatorId": event.user_id,
-            })
+        response = await client.put(url=f'/place/{city_name}/{place_name}/announcement/{announcement_id}/renewal', )
         data = Announcement(**json_dict_from_response(response))
-        await matcher.send(
-            reply_text(
-                f'''成功为{data.place.placeName}的第{data.announcementId}号公告续期一周，其内容如下：
-{await data.display_str(bot, event)}'''.strip(), event))
+        await matcher.finish(reply_text(f"""成功为 {data.place.name} 的第 {announcement_id} 号公告续期一周，公告内容如下：
+{await data.to_str(bot, event.group_id)}""".strip(), event))
 
     ##########
 
-    await do_request(matcher, event, place_name, do, handle_not_found=True)
+    await do_request(matcher, event, place_name, do)
 
 
-@delete_announcement.handle()
-async def handle_delete_announcement(
+@announcement_delete.handle()
+async def handle_announcement_delete(
         matcher: Matcher,
         bot: Bot,
         event: GroupMessageEvent,
-        r: Annotated[tuple[Any, ...], RegexGroup()]
+        r: Annotated[dict[str, Any], RegexDict()]
 ):
-    location = get_group_location(event.group_id)
-    place_name: str = r[0].strip()
-    try:
-        announcement_id: int = int(r[1].strip())
-    except ValueError:
-        await matcher.send(reply_text('请输入正确的公告ID。', event))
-        return
+    city_name = group_mapping[event.group_id]
+    place_name = r['place'].strip()
+    announcement_id = r['announcementId']
 
     ##########
     async def do():
-        response = client.request(
-            'DELETE',
-            url=f'{consts.API_URL}/place/{location}/{place_name}/announcement/{announcement_id}',
-            json={
-                "deleterId": event.user_id,
-            })
+        response = await client.delete(url=f'/place/{city_name}/{place_name}/announcement/{announcement_id}')
         data = Announcement(**json_dict_from_response(response))
-        await matcher.send(
-            reply_text(f'''成功为{data.place.placeName}删除了第{data.announcementId}号公告，其内容如下：
-{await data.display_str(bot, event)}'''.strip(), event))
+        await matcher.finish(reply_text(f"""成功为 {data.place.name} 删除了第 {announcement_id} 号公告，公告内容如下：
+{await data.to_str(bot, event.group_id)}""".strip(), event))
 
     ##########
 

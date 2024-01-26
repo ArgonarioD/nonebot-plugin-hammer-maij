@@ -1,8 +1,12 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel, validator
 
 
-class Config(BaseSettings):
-    # Your Config Here
+class Config(BaseModel):
+    maij_api_token: str
+    maij_api_root_url: str = 'https://api.argonariod.tech/maij'
 
-    class Config:
-        extra = "ignore"
+    @validator("maij_api_token")
+    def check_token(cls, v):
+        if isinstance(v, str):
+            return v
+        raise ValueError("maij_api_token must be str")
