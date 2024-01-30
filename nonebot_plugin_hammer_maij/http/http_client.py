@@ -48,7 +48,6 @@ client = httpx.AsyncClient(
         'response': [response_raise_check]
     },
     base_url=config.maij_api_root_url,
-    # verify=False,
     http1=False,
     http2=True
 )

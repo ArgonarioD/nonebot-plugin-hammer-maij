@@ -143,3 +143,5 @@ dmypy.json
 .pdm-build/
 .pdm-python
 .idea
+
+config.toml
