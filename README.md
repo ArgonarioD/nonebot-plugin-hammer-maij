@@ -18,7 +18,7 @@
   </a>
   <img src="https://img.shields.io/badge/python-3.9-blue.svg" alt="python">
     <a href="https://docs.argonariod.tech/maij">
-    <img src="https://img.shields.io/badge/MaiJ API-3.0.0-blue" alt="maij">
+    <img src="https://img.shields.io/badge/MaiJ API-3.2.0-blue" alt="maij">
   </a>
   <img src="https://img.shields.io/badge/Onebot-v11-lightgrey" alt="onebot11">
   <img src="https://img.shields.io/badge/nonebot-2.1.0-orange" alt="nonebot2">

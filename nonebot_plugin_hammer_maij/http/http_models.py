@@ -130,6 +130,20 @@ class PlaceListed(PlaceBrief):
         return result
 
 
+class CityCardStatus:
+    def __init__(
+            self,
+            updatedPlaces: list[dict],
+            nonUpdatedPlacesWithAnnouncements: list[dict],
+    ):
+        self.updatedPlaces: list[PlaceListed] = []
+        for place in updatedPlaces:
+            self.updatedPlaces.append(PlaceListed(**place))
+        self.nonUpdatedPlacesWithAnnouncements: list[PlaceListed] = []
+        for place in nonUpdatedPlacesWithAnnouncements:
+            self.nonUpdatedPlacesWithAnnouncements.append(PlaceListed(**place))
+
+
 class Alias:
     def __init__(
             self,
